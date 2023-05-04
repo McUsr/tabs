@@ -52,11 +52,14 @@ int main(int argc, char **argv)
 {
     int TAP = TRUE; /* TAP: [Tab Arguments Processing] */
     int tabval=8, processed=argc, initial_only=FALSE;
+    char *modus=NULL;
     void show_help();
     void set_eventabs( int tab_sz ) ;
     void set_random_tab( int tab_sz ) ;
     void set_mPlusn_tabs( int m, int n) ;
     void set_tabsize_after_last_tab( int n) ;
+    void print_tab_positions() ;
+
     extern int errno ;
     
     printf("initial argc: %d\n",argc);
@@ -82,6 +85,7 @@ int main(int argc, char **argv)
                 int j=1, ENDVAL=FALSE;
                 char *str1,*token;
                 int ofs;
+                modus=strdup("List of tabs");
                 if (!strncmp(*argv,"-t=",3))
                        ofs = 3 ; 
                 else 
@@ -147,11 +151,12 @@ int main(int argc, char **argv)
                             "\n...Exiting.\n","detab",&(*argv)[ofs] );
                     exit(2) ;
                 } else if (argc <= 1 ) { /* no point in looking for more */
-
+                    modus=strdup("Even tab settings");
                     set_eventabs(tabval) ;
                    
                 } else  { /* check to see if we got a list. */
                     int tmpval;
+                    modus=strdup("List of tabs");
                     /* We LOOK AHEAD, at this point we know we have an
                      * extra argument left */
                     if (tmpval=xatoi(*(argv+1),&prefix) != 0 ) {
@@ -210,6 +215,7 @@ int main(int argc, char **argv)
                             }
                         }
                     } else { /* we didn't have a list, only even tabs. */
+                        modus=strdup("Even tab settings");
                         set_eventabs(tabval) ;
                     }
                 }
@@ -217,6 +223,7 @@ int main(int argc, char **argv)
         } else if (*argv[0] == '-' && (strpbrk((*argv)+1,"1234567890") == (*argv)+1 )) {
             /* TODO: settabs function that starts with the n offset */
             /* start of a "-m +n" construct */
+            modus=strdup("-m +n construct");
             int m=atoi((*argv)+1);
             if (argc >1 ) {
                 --argc ;
@@ -233,7 +240,6 @@ int main(int argc, char **argv)
                 exit(2) ;
             }
         } else if (!strcmp(*argv,"--")) {
-           TAP=FALSE;
             ++argv ;
            --processed ;
            break;
@@ -250,15 +256,21 @@ int main(int argc, char **argv)
  (returns NULL  if not.)
 
  is_unsigned_int. takes the address, based on has_delimiter prefix.)
+ */
 
-
-
- *
- *
- * */
-
-  if (!tabs_been_set() ) 
+  if (!tabs_been_set() ) {
       set_eventabs( tabval ) ;
+      modus=strdup("Even tab settings");
+  }
+
+/* DEBUG block:
+ */
+    printf("Modus == %s\n",modus) ;
+
+    print_tab_positions()
+
+    return 1 ;
+
 
     printf("DONE Options  processing argc== %d argv==%s\n",argc,*argv);
     if (processed != argc ) {
