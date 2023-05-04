@@ -348,6 +348,23 @@ int main(int argc, char **argv)
     return 0; 
 }
 
+/* Options debugging machinery
+ * we print out the tab positions,
+ * and try it with different use cases, from a script.
+ */
+/* print_tab_positions: print out the tab positions
+ */
+void print_tab_positions()
+{
+    /* we need to add one, so that we have a one based index */
+
+    for( int i=-1 ; i<=LAST_TAB ; i++ )
+    {
+        if (tabpos[i] )
+            printf("tabpos: %-2d\n",i+1) ;
+    }
+
+}
 
 /* xtoau: returns an unsigned, 0 if no number, NUL '\0'
  * if no prefix, otherwise '-', '+' or '/'.
