@@ -20,13 +20,16 @@
 #include "tab_settings.h"
 
 #define PROGNAME "\033[1entab\033[0m"
+#define getchar() getc(in)
 int main(int argc, char **argv)
 {
     int tabval=8, initial_only=FALSE;
+#ifdef HANOI  
     char *modus=NULL;
+#endif 
+    FILE *in=stdin ;
+    int processed=0; 
     void show_help();
-    void set_eventabs( int tab_sz ) ;
-    void set_random_tab( int tab_sz ) ;
     
       /* We need to process arguments for tabs from the command line. */
       /* -i --initial : do not convert spaces to tabs after non blanks */
@@ -59,7 +62,9 @@ int main(int argc, char **argv)
 
        */
 
+#ifdef HANOI  
     printf("initial argc: %d\n",argc);
+#endif 
     while ( argc > 1 ) {
          /* printf("argc > 1\n"); */
        ++argv;
@@ -78,11 +83,15 @@ int main(int argc, char **argv)
             /* so, we when we get a value with a prefix, then ENDVAL is true,
              * any numbers after an ENDVAL == TRUE is an error.
              */
+#ifdef HANOI  
             printf("About to set tab positions.\n") ;
+#endif 
             if (strstr(*argv,",")) {
                 int j=1, ENDVAL=FALSE;
                 char *str1,*token;
+#ifdef HANOI  
                 modus=strdup("List of tabs");
+#endif 
                 ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 for (str1 = &(*argv)[ofs]; ; j++, str1 = NULL) {
@@ -97,7 +106,9 @@ int main(int argc, char **argv)
                      */
                     printf("token == %s\n",token);
                     if ((tabval=xtatou(token,&prefix)) != 0 && (prev_prefix != PLUS && prev_prefix != DIV )) {
+#ifdef HANOI  
                         printf("setting tabpos: %d  prefix == ",tabval); 
+#endif 
                         prev_prefix= prefix ;
                         add_tabs( tabval,prefix) ;
                     } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
@@ -120,16 +131,22 @@ int main(int argc, char **argv)
                 ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 tabval= xtatou(&(*argv)[ofs], &prefix) ;
+#ifdef HANOI  
                 printf("tabval == %d\n",tabval );
+#endif 
                 if (tabval == 0 || prefix != NUL) {
                     abort_bad_num_arg(PROGNAME, &(*argv)[ofs]) ;
                 } else if (argc <= 1 ) { /* no point in looking for more */
+#ifdef HANOI  
                     modus=strdup("Even tab settings");
+#endif 
                     set_eventabs(tabval) ;
                    
                 } else  { /* check to see if we got a list. */
                     int tmpval;
+#ifdef HANOI  
                     modus=strdup("List of tabs");
+#endif 
                     /* We LOOK AHEAD, at this point we know we have an
                      * extra argument left */
                     if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 ) {
@@ -148,7 +165,9 @@ int main(int argc, char **argv)
                         for ( ; argc > 1 ; --argc,++argv  ) {
                             if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 && ( prev_prefix != PLUS && prev_prefix != DIV)) {
                             /* '+; or '/' prefix from here */
+#ifdef HANOI  
                                 printf("List of tabs! val = %d prefix == ",tmpval);
+#endif 
                                 prev_prefix= prefix ;
                                 add_tabs( tmpval,prefix) ;
                             } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
@@ -159,7 +178,9 @@ int main(int argc, char **argv)
                             }
                         }
                     } else { /* we didn't have a list, only even tabs. */
+#ifdef HANOI  
                         modus=strdup("Even tab settings");
+#endif 
                         set_eventabs(tabval) ;
                     }
                 }
@@ -167,8 +188,10 @@ int main(int argc, char **argv)
         } else if ((*(argv))[0] == '-' && (strpbrk(&(*(argv))[1],"1234567890") == &(*(argv))[1] )) {
             /* TODO: settabs function that starts with the n offset */
             /* start of a "-m +n" construct */
+#ifdef HANOI  
             printf("HERE IN M +N\n") ;
             modus=strdup("-m +n construct");
+#endif 
             int m=atoi((*argv)+1);
             if (argc >1 ) {
                 --argc ;
@@ -198,10 +221,12 @@ int main(int argc, char **argv)
        }
     }
 
+#ifdef HANOI  
     if (argc > 1 ) {
         printf("Next argument is: %s \n",*argv);
         return 1 ;
     } 
+#endif 
 
 
     /* so, this is our tab expansion program 
@@ -216,39 +241,55 @@ int main(int argc, char **argv)
      *
      * at this time, we consider file names as superfluous, but we did dup and reopen earlier.
      */
-    int c,col=1,newcol,nonwhi=0 ;
-    do {
-        newcol=col ;
-        while ((c=getchar()) == SPACE ) {
-            /* Hvis det er galt å ta med tab pos, så can vi ha frampek? */
-            /* TODO: sjekk ut at vi får satt ting riktig, og at show_help er oppdatert. */
-            ++newcol;
-            if (istabpos(newcol) && !nonwhi || ( nonwhi && !initial_only ) && newcol < LAST_TAB ) {
-                putchar(TAB) ;
-                col=newcol;
+    for (;;) {
+        if ( argc > 1 ) {
+            --argc;
+            *argv++ ;
+            if (!strcmp(*argv,"-") && (processed > 0 )) {
+                in=stdin;
+            } else if ( (in = fopen(*argv,"r") ) == NULL ) {
+                fprintf(stderr,"fileargs1: Can't open %s\n",*argv );
+                ++processed ;
+                continue;
             }
         }
-        while (col<newcol ) {
-            putchar(SPACE);
-            ++col ;
-        }
-        if(c != EOF) {
-            if (!isspace(c) ) {
-                ++col;
-                nonwhi=TRUE ;
-                putchar(c) ;
-            } else if (c == BACKSPACE ) {
-                --col ;
-                putchar(c) ;
-            } else if (c == NEWLINE ) {
-                nonwhi=FALSE;
-                col=1;
-                putchar(c) ;
-            } else 
-                putchar(c) ;
-        }
-        /* exit(0); */
-    } while (c != EOF) ;
+
+        int c,col=1,newcol,nonwhi=0 ;
+        do {
+            newcol=col ;
+            while ((c=getchar()) == SPACE ) {
+                /* Hvis det er galt å ta med tab pos, så can vi ha frampek? */
+                /* TODO: sjekk ut at vi får satt ting riktig, og at show_help er oppdatert. */
+                ++newcol;
+                if (istabpos(newcol) && !nonwhi || ( nonwhi && !initial_only ) && newcol < LAST_TAB ) {
+                    putchar(TAB) ;
+                    col=newcol;
+                }
+            }
+            while (col<newcol ) {
+                putchar(SPACE);
+                ++col ;
+            }
+            if(c != EOF) {
+                if (!isspace(c) ) {
+                    ++col;
+                    nonwhi=TRUE ;
+                    putchar(c) ;
+                } else if (c == BACKSPACE ) {
+                    --col ;
+                    putchar(c) ;
+                } else if (c == NEWLINE ) {
+                    nonwhi=FALSE;
+                    col=1;
+                    putchar(c) ;
+                } else 
+                    putchar(c) ;
+            }
+            /* exit(0); */
+        } while (c != EOF) ;
+        ++processed ;
+        if (argc == 1 ) break ;
+    }
     return 0; 
 }
 void show_help() 
@@ -266,7 +307,7 @@ void show_help()
             "    '+' can be used to align remaining tabstops relative to the\n"
             "    last specified tab stop instead of the first column.\n\n"
             "-m +n :set tabstops n spaces apart, starting at position m\n\n"
-            "-- :signals the end of options and the beginning of file arguments.");
+            "-- :signals the end of options and the beginning of file arguments.\n\n");
     exit(0) ;
 }
 
