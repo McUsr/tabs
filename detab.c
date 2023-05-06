@@ -48,16 +48,21 @@
 
 int tabpos[MAXLINE] ;
 int LAST_TAB=0;
+
 int main(int argc, char **argv)
 {
-    int TAP = TRUE; /* TAP: [Tab Arguments Processing] */
     int tabval=8, processed=argc, initial_only=FALSE;
     char *modus=NULL;
     void show_help();
+    void abort_with_msg( char *s ) ;
+    void abort_list_arg_error( char *bad_arg) ;
+    void abort_bad_num_arg( char *bad_arg) ;
+    void add_tabs( int tabpos, char prefix);
+    int xtatou(char s[], char *prefix) ;
+    int tabs_been_set() ;
     void set_eventabs( int tab_sz ) ;
     void set_random_tab( int tab_sz ) ;
     void set_mPlusn_tabs( int m, int n) ;
-    void set_tabsize_after_last_tab( int n) ;
     void print_tab_positions() ;
 
     extern int errno ;
@@ -67,6 +72,7 @@ int main(int argc, char **argv)
          /* printf("argc > 1\n"); */
        ++argv;
        --argc;
+       printf("Argv== %s\n",*argv) ;
        if (!strcmp(*argv,"-i") || !strcmp(*argv,"--initial") ) {
             /* printf("do not convert tabs after non blanks\n") ; */
             initial_only=TRUE;
@@ -101,28 +107,13 @@ int main(int argc, char **argv)
                      * argument we parse, and if there are any other on the list
                      * when the list is comma separated, we signal that it is an error.
                      */
-                    if ((tabval=xtatou(token),&prefix) != 0 && (prev_prefix != PLUS || prev_prefix != DIV )) {
-                        /* printf("setting tabpos: %d\n",tabval); */
+                    printf("token == %s\n",token);
+                    if ((tabval=xtatou(token,&prefix)) != 0 && (prev_prefix != PLUS || prev_prefix != DIV )) {
+                        printf("setting tabpos: %d  prefix == ",tabval); 
                         prev_prefix= prefix ;
-                        switch (prefix) 
-                        {
-                            case NUL :
-                                set_random_tab(tabval) ;
-                                break;
-                            case MINUS :
-                                set_random_tab(tabval) ;
-                                break;
-                            case PLUS : 
-                                set_mPlusn_tabs( LAST_TAB, tabval) ;
-                                break ;
-                            case DIV :
-                                set_tabsize_after_last_tab( tabval ) ;
-
-                        }
+                        add_tabs( tabval,prefix) ;
                     } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
-                        fprintf(stderr,"%s: it is illegal to supply an numeric argument \"%s\""
-                               " after a '+|/' argument\n","detab",token);
-                        exit(2) ;
+                        abort_list_arg_error( token ) ;
                         /* ERROR CONDITION: we simply ignore MINUS at this point */
                     } else {
                         fprintf(stderr,"%s: NaN: \"%s\"...Exiting.\n","detab",token );
@@ -145,11 +136,9 @@ int main(int argc, char **argv)
                        ofs = 7 ;
 
                 tabval= xtatou(&(*argv)[ofs], &prefix) ;
+                printf("tabval == %d\n",tabval );
                 if (tabval == 0 || prefix != NUL) {
-                    fprintf(stderr,"%s: Bad numeric argument for "
-                            "\"-t=\" or \"-tabs=\" single form: \"%s\""
-                            "\n...Exiting.\n","detab",&(*argv)[ofs] );
-                    exit(2) ;
+                    abort_bad_num_arg( &(*argv)[ofs]) ;
                 } else if (argc <= 1 ) { /* no point in looking for more */
                     modus=strdup("Even tab settings");
                     set_eventabs(tabval) ;
@@ -159,28 +148,13 @@ int main(int argc, char **argv)
                     modus=strdup("List of tabs");
                     /* We LOOK AHEAD, at this point we know we have an
                      * extra argument left */
-                    if (tmpval=xatoi(*(argv+1),&prefix) != 0 ) {
-
+                    if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 ) {
+                        
                        set_random_tab(tabval) ;
 
                         prev_prefix= prefix ;
                        /* maybe '+; or '/' prefix from here */
-
-                        switch (prefix) 
-                        {
-                            case NUL :
-                                set_random_tab(tmpval) ;
-                                break;
-                            case MINUS :
-                                set_random_tab(tmpval) ;
-                                break;
-                            case PLUS : 
-                                set_mPlusn_tabs( LAST_TAB, tmpval) ;
-                                break ;
-                            case DIV :
-                                set_tabsize_after_last_tab( tmpval ) ;
-
-                        }
+                        add_tabs( tmpval,prefix) ;
 
                        /* we used the argument, so we need to adjust 
                         * the current argument, which is already processed
@@ -188,28 +162,13 @@ int main(int argc, char **argv)
                        --argc;
                        ++argv;
                         for ( ; argc > 1 ; --argc,++argv  ) {
-                            if ((tmpval=xtatou(*(argv+1)),&prefix) != 0 && ( prev_prefix != PLUS || prev_prefix != DIV)) {
+                            if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 && ( prev_prefix != PLUS || prev_prefix != DIV)) {
                             /* '+; or '/' prefix from here */
+                                printf("List of tabs! val = %d prefix == ",tmpval);
                                 prev_prefix= prefix ;
-                                switch (prefix) 
-                                {
-                                    case NUL :
-                                        set_random_tab(tabval) ;
-                                        break;
-                                    case MINUS :
-                                        set_random_tab(tabval) ;
-                                        break;
-                                    case PLUS : 
-                                        set_mPlusn_tabs( LAST_TAB, tabval) ;
-                                        break ;
-                                    case DIV :
-                                        set_tabsize_after_last_tab( tabval ) ;
-
-                                }
+                                add_tabs( tmpval,prefix) ;
                             } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
-                                fprintf(stderr,"%s: it is illegal to supply an numeric argument \"%s\""
-                                       " after a '+|/' argument\n","detab",token);
-                                exit(2) ;
+                                abort_list_arg_error( *(argv+1) ) ;
                             } else  /* tmpval == 0 */ {
                                 break ; /* no more numbers to process */
                             }
@@ -220,29 +179,36 @@ int main(int argc, char **argv)
                     }
                 }
             }
-        } else if (*argv[0] == '-' && (strpbrk((*argv)+1,"1234567890") == (*argv)+1 )) {
+        } else if ((*(argv))[0] == '-' && (strpbrk(&(*(argv))[1],"1234567890") == &(*(argv))[1] )) {
             /* TODO: settabs function that starts with the n offset */
             /* start of a "-m +n" construct */
+            printf("HERE IN M +N\n") ;
             modus=strdup("-m +n construct");
             int m=atoi((*argv)+1);
             if (argc >1 ) {
                 --argc ;
                 ++argv ;
                 if (*argv[0] == '+' && (strpbrk((*argv)+1,"1234567890") == (*argv)+1 )) {
+                    printf("HERE IN N +M\n") ;
                     int n = atoi((*argv)+1);
                     /* setting tabs as we should */
+                   set_mPlusn_tabs( m,  n) ;
                 } else {
-                    fprintf(stderr,"detab: Incomplete \"-n +m\" construct, missing \"+m\" argument.\n");
-                    exit(2) ;
+                    abort_with_msg("Incomplete \"-n +m\" construct, missing \"+m\" argument.");
                 }
             } else {
-                fprintf(stderr,"detab: Incomplete \"-n +m\" construct, missing \"+m\" argument.\n");
-                exit(2) ;
+                abort_with_msg("Incomplete \"-n +m\" construct, missing \"+m\" argument.");
             }
         } else if (!strcmp(*argv,"--")) {
             ++argv ;
            --processed ;
            break;
+       } else {
+           break ;
+           /* we check if the argument may be a valid file, before we conclude with error,
+            * -we are somewhat forgiving with regards to the "--" option, not making it totally
+            * mandatary
+            */
        }
     }
 /* TODO: error function/macro 
@@ -259,6 +225,7 @@ int main(int argc, char **argv)
  */
 
   if (!tabs_been_set() ) {
+      printf("Tabs NOT set initially\n");
       set_eventabs( tabval ) ;
       modus=strdup("Even tab settings");
   }
@@ -267,7 +234,7 @@ int main(int argc, char **argv)
  */
     printf("Modus == %s\n",modus) ;
 
-    print_tab_positions()
+    print_tab_positions() ;
 
     return 1 ;
 
@@ -360,6 +327,25 @@ int main(int argc, char **argv)
     return 0; 
 }
 
+void abort_with_msg( char *s )
+{
+    fprintf(stderr,"detab: %s\n");
+    exit(2) ;
+}
+void abort_list_arg_error( char *bad_arg)
+{
+    fprintf(stderr,"detab: it is illegal to supply more numeric arguments \"%s\""
+           " after a '+|/' argument\n",bad_arg);
+    exit(2) ;
+}
+void abort_bad_num_arg( char *bad_arg)
+{
+    fprintf(stderr,"detab: Bad numeric argument for "
+            "\"-t=\" or \"-tabs=\" single form: \"%s\""
+            "\n...Exiting.\n",bad_arg );
+    exit(2) ;
+}
+
 /* Options debugging machinery
  * we print out the tab positions,
  * and try it with different use cases, from a script.
@@ -370,12 +356,40 @@ void print_tab_positions()
 {
     /* we need to add one, so that we have a one based index */
 
-    for( int i=-1 ; i<=LAST_TAB ; i++ )
+    for( int i=0 ; i<=LAST_TAB ; i++ )
     {
         if (tabpos[i] )
             printf("tabpos: %-2d\n",i+1) ;
     }
 
+}
+
+/* add_tabs: adds tabs using the correct system for the current option,
+ * it  is a higher level routine, interfacing the underlying set_tab
+ * routines.
+ */
+void add_tabs( int tabpos, char prefix)
+{
+    void set_random_tab( int tab_sz ) ;
+    void set_mPlusn_tabs( int m, int n) ;
+    void set_tabsize_after_last_tab( int n) ;
+    switch (prefix) 
+    {
+        case NUL :
+            printf("NUL:\n");
+            set_random_tab(tabpos) ;
+            break;
+        case MINUS :
+            set_random_tab(tabpos) ;
+            break;
+        case PLUS : 
+            printf("PLUS\n");
+            printf("LAST_TAB == %d\n",LAST_TAB);
+            set_mPlusn_tabs( LAST_TAB, tabpos) ;
+            break ;
+        case DIV :
+            set_tabsize_after_last_tab( tabpos ) ;
+    }
 }
 
 /* xtoau: returns an unsigned, 0 if no number, NUL '\0'
@@ -434,21 +448,23 @@ int tabs_been_set() {
 
 void set_eventabs( int tab_sz )
 {
-    int i=tab_sz-1,j=0;            /* zerobazed array */
-    while ( (i+=(tab_sz*j++))< MAXLINE ) {
+    int i=-1;            /* zerobazed array */
+    /* i=tab_sz-1; */
+    while ( (i+tab_sz) < (MAXLINE-1) ) {
+        i+=tab_sz;
         tabpos[i] = 1 ;
-        LAST_TAB = max(LAST_TAB,(i+1)) ;
+        LAST_TAB = max(LAST_TAB,i) ;
     }
 }
 
-void set_random_tab( int tab_sz,char *progname ) 
+void set_random_tab( int tab_sz ) 
 {
         if ( tab_sz > LAST_TAB ) {
             tabpos[tab_sz-1] = 1 ;
             LAST_TAB = max(LAST_TAB,tab_sz ) ;
         } else {
-            fprintf(stderr,"%s: Tab positions not in ascending order."
-                    "\nTerminating...\n",progname);
+            fprintf(stderr,"detab: Tab positions not in ascending order."
+                    "\nTerminating...\n");
             exit(2) ;
         }
 }
@@ -457,10 +473,11 @@ void set_random_tab( int tab_sz,char *progname )
  * n is evenly spaced from that position, to MAXLINE
  */
 void set_mPlusn_tabs( int m, int n) {
-    int i=m-1, j=1;
-    while ( (i+=(tab_sz*j++))< MAXLINE ) {
+    int i=m-1;
+    while ( (i+n) < (MAXLINE-1) ) {
+        i+=n ;
         tabpos[i] = 1 ;
-        LAST_TAB = max(LAST_TAB,(i+1)) ;
+        LAST_TAB = max(LAST_TAB,i) ;
     }
 }
 
@@ -475,12 +492,14 @@ void set_mPlusn_tabs( int m, int n) {
  */
 void set_tabsize_after_last_tab( int n) 
 {
-    int i=tab_sz-1,j=0;            /* zerobazed array */
-    while ( (i+=(tab_sz*j++))<= LAST_TAB ) 
-        ;
-    while ( (i+=(tab_sz*j++))< MAXLINE ) {
+    int i=n-1,j=0;            /* zerobazed array */
+    while ( (i+n)<= LAST_TAB ) 
+        i+=n;
+
+    while ( (i+n)< MAXLINE ) {
+        i+=n;
         tabpos[i] = 1 ;
-        LAST_TAB = max(LAST_TAB,(i+1)) ;
+        LAST_TAB = max(LAST_TAB,i) ;
     }
 }
 
