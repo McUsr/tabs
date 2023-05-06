@@ -1,18 +1,19 @@
 CFLAGS = -g -mglibc
-LDFLAGS = -lm
+LDFLAGS = 
 .PHONY: all
 
-DEPS = getop2.o getch.o stack.o 
+DEPS = tab_settings.o 
 
-all: revpol 
+all: detab 
 
-revpol : revpol.o $(DEPS)
-	$(CC) $(CFLAGS) -o revpol revpol.o $(DEPS) $(LDFLAGS) 
-	$@
+detab : detab.o $(DEPS)
+	$(CC) $(CFLAGS) -o detab $< $(DEPS) $(LDFLAGS) 
 
-revpol.c: calc.h makefile
+detab.c: tab_consts.h tab_settings.h makefile
 	touch $@
 
+tab_settings.o: tab_consts.h tab_settings.h 
+
 install:
-	strip revpol
-	cp revpol ~/bin/rp
+	strip detab
+	cp detab $(BINDIR)
