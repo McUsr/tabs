@@ -24,74 +24,23 @@
 int main(int argc, char **argv)
 {
     int tabval=8, initial_only=FALSE;
-#ifdef HANOI  
-    char *modus=NULL;
-#endif 
     FILE *in=stdin ;
     int processed=0; 
     void show_help();
-    
-      /* We need to process arguments for tabs from the command line. */
-      /* -i --initial : do not convert spaces to tabs after non blanks */
-      /* -t --tabs=N have tabs N characgters apart, not 8 */
-      /* -t --tabs=LIST USE comma separated list of tab position. last can be prefixed with
-       * '/' to specify a a tab size to use after the last explicitly specified tab stop.
-       * Also a prefix of + can be used to align remaining tabstops relative to the last 
-       * specified tab stop instead of the first column.
-       *
-
-
-       processes files / - for stdin, and sends to stdout.
-
-       --first-only
-              convert only leading sequences of blanks (overrides -a)
-
-       -t, --tabs=N
-              have tabs N characters apart instead of 8 (enables -a)
-
-       -t, --tabs=LIST
-              use  comma separated list of tab positions The last specified position can be prefixed with '/' to specify a tab size
-              to use after the last explicitly specified tab stop.  Also a prefix of '+' can be used to align remaining  tab  stops
-              relative to the last specified tab stop instead of the first column
-
-       --help display this help and exit
-
-       --version
-              output version information and exit
-
-
-       */
-
-#ifdef HANOI  
-    printf("initial argc: %d\n",argc);
-#endif 
     while ( argc > 1 ) {
-         /* printf("argc > 1\n"); */
        ++argv;
        --argc;
        printf("Argv== %s\n",*argv) ;
        if (!strcmp(*argv,"-i") || !strcmp(*argv,"--initial") ) {
-            /* printf("do not convert tabs after non blanks\n") ; */
             initial_only=TRUE;
-            /* help  -h comes here */
-
         } else if (!strcmp(*argv,"-h")||!strcmp(*argv,"--help")) { 
             show_help() ; /* show help and exit.*/
         } else if (!strncmp(*argv,"-t=",3) || !strncmp(*argv,"--tabs=",7) ) {
             int ofs;
             char prefix = NUL, prev_prefix=NUL ;
-            /* so, we when we get a value with a prefix, then ENDVAL is true,
-             * any numbers after an ENDVAL == TRUE is an error.
-             */
-#ifdef HANOI  
-            printf("About to set tab positions.\n") ;
-#endif 
             if (strstr(*argv,",")) {
                 int j=1, ENDVAL=FALSE;
                 char *str1,*token;
-#ifdef HANOI  
-                modus=strdup("List of tabs");
-#endif 
                 ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 for (str1 = &(*argv)[ofs]; ; j++, str1 = NULL) {
@@ -99,16 +48,7 @@ int main(int argc, char **argv)
                     token = strtok(str1, ",");
                     if (token == NULL)
                         break;
-                    /* printf("%d: %s\n", j, token); */
-                    /* TODO check for plus or div if found, it is the last
-                     * argument we parse, and if there are any other on the list
-                     * when the list is comma separated, we signal that it is an error.
-                     */
-                    printf("token == %s\n",token);
                     if ((tabval=xtatou(token,&prefix)) != 0 && (prev_prefix != PLUS && prev_prefix != DIV )) {
-#ifdef HANOI  
-                        printf("setting tabpos: %d  prefix == ",tabval); 
-#endif 
                         prev_prefix= prefix ;
                         add_tabs( tabval,prefix) ;
                     } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
@@ -121,34 +61,25 @@ int main(int argc, char **argv)
                     }
 
                 }
-                /* printf("We are having a list of tab positions\n") ; */
             } else {
-                /* We have a regular -{t|tabval}= situation.
-                 * Or we are getting a space separated list with arguments.
-                 * And: we are keeping in line with regards to incrementing argc at the 
-                 * top of the loop, without any hanky panky.
+                /* We have a regular -{t|tabval}= situation.  Or we are getting
+                 * a space separated list with arguments.  And: we are keeping
+                 * in line with regards to incrementing argc at the top of the
+                 * loop, without any hanky panky.
                  */
                 ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 tabval= xtatou(&(*argv)[ofs], &prefix) ;
-#ifdef HANOI  
-                printf("tabval == %d\n",tabval );
-#endif 
                 if (tabval == 0 || prefix != NUL) {
                     abort_bad_num_arg(PROGNAME, &(*argv)[ofs]) ;
                 } else if (argc <= 1 ) { /* no point in looking for more */
-#ifdef HANOI  
-                    modus=strdup("Even tab settings");
-#endif 
                     set_eventabs(tabval) ;
                    
                 } else  { /* check to see if we got a list. */
                     int tmpval;
-#ifdef HANOI  
-                    modus=strdup("List of tabs");
-#endif 
-                    /* We LOOK AHEAD, at this point we know we have an
-                     * extra argument left */
+                    /* We LOOK AHEAD, at this point we know we have an extra
+                     * argument left */
+
                     if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 ) {
                         
                        set_random_tab(tabval) ;
@@ -157,17 +88,14 @@ int main(int argc, char **argv)
                        /* maybe '+; or '/' prefix from here */
                         add_tabs( tmpval,prefix) ;
 
-                       /* we used the argument, so we need to adjust 
-                        * the current argument, which is already processed
-                        * and the argument counter */
+                       /* we used the argument, so we need to adjust the
+                        * current argument, which is already processed and the
+                        * argument counter */
                        --argc;
                        ++argv;
                         for ( ; argc > 1 ; --argc,++argv  ) {
                             if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 && ( prev_prefix != PLUS && prev_prefix != DIV)) {
                             /* '+; or '/' prefix from here */
-#ifdef HANOI  
-                                printf("List of tabs! val = %d prefix == ",tmpval);
-#endif 
                                 prev_prefix= prefix ;
                                 add_tabs( tmpval,prefix) ;
                             } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
@@ -178,20 +106,11 @@ int main(int argc, char **argv)
                             }
                         }
                     } else { /* we didn't have a list, only even tabs. */
-#ifdef HANOI  
-                        modus=strdup("Even tab settings");
-#endif 
                         set_eventabs(tabval) ;
                     }
                 }
             }
         } else if ((*(argv))[0] == '-' && (strpbrk(&(*(argv))[1],"1234567890") == &(*(argv))[1] )) {
-            /* TODO: settabs function that starts with the n offset */
-            /* start of a "-m +n" construct */
-#ifdef HANOI  
-            printf("HERE IN M +N\n") ;
-            modus=strdup("-m +n construct");
-#endif 
             int m=atoi((*argv)+1);
             if (argc >1 ) {
                 --argc ;
@@ -214,33 +133,11 @@ int main(int argc, char **argv)
        } else {
            ++argc ;
            break ;
-           /* we check if the argument may be a valid file, before we conclude with error,
-            * -we are somewhat forgiving with regards to the "--" option, not making it totally
-            * mandatary
-            */
        }
     }
-
-#ifdef HANOI  
-    if (argc > 1 ) {
-        printf("Next argument is: %s \n",*argv);
-        return 1 ;
-    } 
-#endif 
-
-
-    /* so, this is our tab expansion program 
-     * it EXPANDS  the tabs into spaces.
-     * IDEA: if we find a tab character, we replace it with spaces until
-     * the next tabstop from the tabpos array. 
-     *
-     * We need to keep track of any non whitespace characters, for the case of 
-     * the only initial flag.
-     *
-     * we need to reset the char counter, whenever we get a newline.
-     *
-     * at this time, we consider file names as superfluous, but we did dup and reopen earlier.
-     */
+    if (!tabs_been_set() ) {
+      set_eventabs( tabval ) ;
+    }
     for (;;) {
         if ( argc > 1 ) {
             --argc;
@@ -258,8 +155,6 @@ int main(int argc, char **argv)
         do {
             newcol=col ;
             while ((c=getchar()) == SPACE ) {
-                /* Hvis det er galt å ta med tab pos, så can vi ha frampek? */
-                /* TODO: sjekk ut at vi får satt ting riktig, og at show_help er oppdatert. */
                 ++newcol;
                 if (istabpos(newcol) && !nonwhi || ( nonwhi && !initial_only ) && newcol < LAST_TAB ) {
                     putchar(TAB) ;
@@ -285,7 +180,6 @@ int main(int argc, char **argv)
                 } else 
                     putchar(c) ;
             }
-            /* exit(0); */
         } while (c != EOF) ;
         ++processed ;
         if (argc == 1 ) break ;
@@ -310,5 +204,3 @@ void show_help()
             "-- :signals the end of options and the beginning of file arguments.\n\n");
     exit(0) ;
 }
-
-
