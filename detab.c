@@ -45,7 +45,7 @@
 
 #define SHIFT --argc;\
     *++argv
-
+#define exit(n) _exit(n)
 int tabpos[MAXLINE] ;
 int LAST_TAB=0;
 
@@ -82,6 +82,7 @@ int main(int argc, char **argv)
         } else if (!strcmp(*argv,"-h")||!strcmp(*argv,"--help")) { 
             show_help() ; /* show help and exit.*/
         } else if (!strncmp(*argv,"-t=",3) || !strncmp(*argv,"--tabs=",7) ) {
+            int ofs;
             char prefix = NUL, prev_prefix=NUL ;
             /* so, we when we get a value with a prefix, then ENDVAL is true,
              * any numbers after an ENDVAL == TRUE is an error.
@@ -90,12 +91,8 @@ int main(int argc, char **argv)
             if (strstr(*argv,",")) {
                 int j=1, ENDVAL=FALSE;
                 char *str1,*token;
-                int ofs;
                 modus=strdup("List of tabs");
-                if (!strncmp(*argv,"-t=",3))
-                       ofs = 3 ; 
-                else 
-                       ofs = 7 ;
+                ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 for (str1 = &(*argv)[ofs]; ; j++, str1 = NULL) {
 
@@ -108,12 +105,13 @@ int main(int argc, char **argv)
                      * when the list is comma separated, we signal that it is an error.
                      */
                     printf("token == %s\n",token);
-                    if ((tabval=xtatou(token,&prefix)) != 0 && (prev_prefix != PLUS || prev_prefix != DIV )) {
+                    if ((tabval=xtatou(token,&prefix)) != 0 && (prev_prefix != PLUS && prev_prefix != DIV )) {
                         printf("setting tabpos: %d  prefix == ",tabval); 
                         prev_prefix= prefix ;
                         add_tabs( tabval,prefix) ;
                     } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
                         abort_list_arg_error( token ) ;
+                        exit(2);
                         /* ERROR CONDITION: we simply ignore MINUS at this point */
                     } else {
                         fprintf(stderr,"%s: NaN: \"%s\"...Exiting.\n","detab",token );
@@ -129,11 +127,7 @@ int main(int argc, char **argv)
                  * And: we are keeping in line with regards to incrementing argc at the 
                  * top of the loop, without any hanky panky.
                  */
-                int ofs;
-                if (!strncmp(*argv,"-t=",3))
-                       ofs = 3 ; 
-                else 
-                       ofs = 7 ;
+                ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 tabval= xtatou(&(*argv)[ofs], &prefix) ;
                 printf("tabval == %d\n",tabval );
@@ -162,13 +156,14 @@ int main(int argc, char **argv)
                        --argc;
                        ++argv;
                         for ( ; argc > 1 ; --argc,++argv  ) {
-                            if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 && ( prev_prefix != PLUS || prev_prefix != DIV)) {
+                            if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 && ( prev_prefix != PLUS && prev_prefix != DIV)) {
                             /* '+; or '/' prefix from here */
                                 printf("List of tabs! val = %d prefix == ",tmpval);
                                 prev_prefix= prefix ;
                                 add_tabs( tmpval,prefix) ;
                             } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
                                 abort_list_arg_error( *(argv+1) ) ;
+                                exit(2);
                             } else  /* tmpval == 0 */ {
                                 break ; /* no more numbers to process */
                             }
@@ -336,7 +331,7 @@ void abort_list_arg_error( char *bad_arg)
 {
     fprintf(stderr,"detab: it is illegal to supply more numeric arguments \"%s\""
            " after a '+|/' argument\n",bad_arg);
-    exit(2) ;
+     exit(2) ; 
 }
 void abort_bad_num_arg( char *bad_arg)
 {
@@ -502,6 +497,3 @@ void set_tabsize_after_last_tab( int n)
         LAST_TAB = max(LAST_TAB,i) ;
     }
 }
-
-
-
