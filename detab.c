@@ -3,13 +3,14 @@
  * detab -- convert tabs to spaces.
  *
  * Original exercise p. 34.
+ * Let us build detab so that when a tab is encountered after the last tab stop
+ * it is converted to a single blank.
  *
- * If we are to take file name arguments, then we could indeed first write the input to a temp file,
- * then reopen and process with stdout duped and reopened?
- *
- * Let us build detab so that when a tab is encountered after the last tab stop it is converted to a
- * single blank.
+ * Support -m +n syntax, in additions to lists of tabs.
  */
+
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -37,25 +38,18 @@ int main(int argc, char **argv)
     printf("initial argc: %d\n",argc);
 #endif 
     while ( argc > 1 ) {
-         /* printf("argc > 1\n"); */
        ++argv;
        --argc;
 #ifdef HANOI  
        printf("Argv== %s\n",*argv) ;
 #endif 
        if (!strcmp(*argv,"-i") || !strcmp(*argv,"--initial") ) {
-            /* printf("do not convert tabs after non blanks\n") ; */
             initial_only=TRUE;
-            /* help  -h comes here */
-
         } else if (!strcmp(*argv,"-h")||!strcmp(*argv,"--help")) { 
             show_help() ; /* show help and exit.*/
         } else if (!strncmp(*argv,"-t=",3) || !strncmp(*argv,"--tabs=",7) ) {
             int ofs;
             char prefix = NUL, prev_prefix=NUL ;
-            /* so, we when we get a value with a prefix, then ENDVAL is true,
-             * any numbers after an ENDVAL == TRUE is an error.
-             */
 #ifdef HANOI  
             printf("About to set tab positions.\n") ;
 #endif 
@@ -72,11 +66,6 @@ int main(int argc, char **argv)
                     token = strtok(str1, ",");
                     if (token == NULL)
                         break;
-                    /* printf("%d: %s\n", j, token); */
-                    /* TODO check for plus or div if found, it is the last
-                     * argument we parse, and if there are any other on the list
-                     * when the list is comma separated, we signal that it is an error.
-                     */
 #ifdef HANOI  
                     printf("token == %s\n",token);
 #endif 
@@ -96,13 +85,7 @@ int main(int argc, char **argv)
                     }
 
                 }
-                /* printf("We are having a list of tab positions\n") ; */
             } else {
-                /* We have a regular -{t|tabval}= situation.
-                 * Or we are getting a space separated list with arguments.
-                 * And: we are keeping in line with regards to incrementing argc at the 
-                 * top of the loop, without any hanky panky.
-                 */
                 ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 tabval= xtatou(&(*argv)[ofs], &prefix) ;
@@ -161,8 +144,6 @@ int main(int argc, char **argv)
                 }
             }
         } else if ((*(argv))[0] == '-' && (strpbrk(&(*(argv))[1],"1234567890") == &(*(argv))[1] )) {
-            /* TODO: settabs function that starts with the n offset */
-            /* start of a "-m +n" construct */
 #ifdef HANOI  
             printf("HERE IN M +N\n") ;
             modus=strdup("-m +n construct");
@@ -191,24 +172,8 @@ int main(int argc, char **argv)
        } else {
            ++argc ;
            break ;
-           /* we check if the argument may be a valid file, before we conclude with error,
-            * -we are somewhat forgiving with regards to the "--" option, not making it totally
-            * mandatary
-            */
        }
     }
-/* TODO: error function/macro 
- *
- * implement a flag for list processing? If nest argument is a number, with or without delimiter,
- * we're list processing.
- *
- * The function for delimiters.
- *
- has_delimiter_prefix
- (returns NULL  if not.)
-
- is_unsigned_int. takes the address, based on has_delimiter prefix.)
- */
 #ifdef HANOI  
     if (argc > 1 ) {
         printf("Next argument is: %s \n",*argv);
@@ -223,9 +188,6 @@ int main(int argc, char **argv)
 #endif 
       set_eventabs( tabval ) ;
   }
-
-/* DEBUG block:
- */
 #ifdef HANOI
     printf("Modus == %s\n",modus) ;
 
@@ -233,8 +195,6 @@ int main(int argc, char **argv)
 
     return 1 ;
 #endif 
-
-
 #ifdef HANOI
     printf("DONE Options  processing argc== %d argv==%s\n",argc,*argv);
     printf(" about to run through input \n") ;
@@ -288,7 +248,6 @@ int main(int argc, char **argv)
 }
 
 
-
 void show_help() 
 {
     printf("\n\033[1mdetab\033[0m expands tabs to spaces upto the tabpos inclusive,\n"
@@ -307,8 +266,3 @@ void show_help()
             "-- :signals the end of options and the beginning of file arguments.\n\n");
     exit(0) ;
 }
-/* we really need LAST_TAB in all tabsetting
- * routines, since we test for it in the expand
- * algorithm.
- */
-
