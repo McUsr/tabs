@@ -18,17 +18,23 @@ void set_mPlusn_tabs( int m, int n) ;
 void print_tab_positions() ;
 */
 
-void abort_list_arg_error( char *bad_arg)
+void abort_with_msg( char *prgname, char *s )
 {
-    fprintf(stderr,"detab: it is illegal to supply more numeric arguments \"%s\""
-           " after a '+|/' argument\n",bad_arg);
+    fprintf(stderr,"%s: %s\n",prgname,s);
+    exit(2) ;
+}
+
+void abort_list_arg_error( char *prgname, char *bad_arg)
+{
+    fprintf(stderr,"%s: it is illegal to supply more numeric arguments \"%s\""
+           " after a '+|/' argument\n",prgname,bad_arg);
      _Exit(2) ; 
 }
-void abort_bad_num_arg( char *bad_arg)
+void abort_bad_num_arg(char *prgname, char *bad_arg)
 {
-    fprintf(stderr,"detab: Bad numeric argument for "
+    fprintf(stderr,"%s: Bad numeric argument for "
             "\"-t=\" or \"-tabs=\" single form: \"%s\""
-            "\n...Exiting.\n",bad_arg );
+            "\n...Exiting.\n",prgname, bad_arg );
     _Exit(2) ;
 }
 

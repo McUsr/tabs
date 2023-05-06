@@ -19,16 +19,7 @@
 #include <errno.h>
 #include "tab_consts.h"
 #include "tab_settings.h"
-/*
-#define getch() getc(stdin) 
-#define ungetch(c) ungetc(c,stdin)
-*/
-#define FALSE 0
-#define TRUE 1
-#define TAB '\t'
-#define NEWLINE '\n'
-#define BACKSPACE '\b'
-#define istabpos(i) (tabpos[i-1] == 1 ) ? 1 : 0 
+
 #define redir_tostdin(mf,fname) mf = freopen(fname,"r",stdin) ;\
     if (mf == NULL ) {\
         fprintf(stderr,"detab: Couldn't open %s.\nTerminating...\n",fname);\
@@ -38,13 +29,13 @@
         --argc;\
     }
 
+#define PROGNAME "\033[1detab\033[0m"
 
 int main(int argc, char **argv)
 {
     int tabval=8, initial_only=FALSE;
     char *modus=NULL;
     void show_help();
-    void abort_with_msg( char *s ) ;
 
     extern int errno ;
     
@@ -90,7 +81,7 @@ int main(int argc, char **argv)
                         prev_prefix= prefix ;
                         add_tabs( tabval,prefix) ;
                     } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
-                        abort_list_arg_error( token ) ;
+                        abort_list_arg_error(PROGNAME, token ) ;
                         exit(2);
                         /* ERROR CONDITION: we simply ignore MINUS at this point */
                     } else {
@@ -111,7 +102,7 @@ int main(int argc, char **argv)
                 tabval= xtatou(&(*argv)[ofs], &prefix) ;
                 printf("tabval == %d\n",tabval );
                 if (tabval == 0 || prefix != NUL) {
-                    abort_bad_num_arg( &(*argv)[ofs]) ;
+                    abort_bad_num_arg(PROGNAME, &(*argv)[ofs]) ;
                 } else if (argc <= 1 ) { /* no point in looking for more */
                     modus=strdup("Even tab settings");
                     set_eventabs(tabval) ;
@@ -141,7 +132,7 @@ int main(int argc, char **argv)
                                 prev_prefix= prefix ;
                                 add_tabs( tmpval,prefix) ;
                             } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
-                                abort_list_arg_error( *(argv+1) ) ;
+                                abort_list_arg_error(PROGNAME, *(argv+1) ) ;
                                 exit(2);
                             } else  /* tmpval == 0 */ {
                                 break ; /* no more numbers to process */
@@ -168,10 +159,10 @@ int main(int argc, char **argv)
                     /* setting tabs as we should */
                    set_mPlusn_tabs( m,  n) ;
                 } else {
-                    abort_with_msg("Incomplete \"-n +m\" construct, missing \"+m\" argument.");
+                    abort_with_msg(PROGNAME,"Incomplete \"-n +m\" construct, missing \"+m\" argument.");
                 }
             } else {
-                abort_with_msg("Incomplete \"-n +m\" construct, missing \"+m\" argument.");
+                abort_with_msg(PROGNAME,"Incomplete \"-n +m\" construct, missing \"+m\" argument.");
             }
         } else if (!strcmp(*argv,"--")) {
             ++argv ;
@@ -301,16 +292,11 @@ int main(int argc, char **argv)
     return 0; 
 }
 
-void abort_with_msg( char *s )
-{
-    fprintf(stderr,"detab: %s\n");
-    exit(2) ;
-}
 
 
 void show_help() 
 {
-    printf("\n\033[1mdetab\033[0m expands tabs to spaces upto but not including the first tabpos\n"
+    printf("\n\033[1mdetab\033[0m expands tabs to spaces upto but not including the tabpos\n"
             "and prints the output to stdout.\n\n"
             "Options:\n\n"
             "-i --initial : do not convert tabs after non blanks.\n\n"
