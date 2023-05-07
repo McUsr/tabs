@@ -24,9 +24,15 @@
 int main(int argc, char **argv)
 {
     int tabval=8, initial_only=FALSE;
+#ifdef HANOI  
+    char *modus=NULL;
+#endif 
     FILE *in=stdin ;
     int processed=0; 
     void show_help();
+#ifdef HANOI  
+    printf("initial argc: %d\n",argc);
+#endif 
     while ( argc > 1 ) {
        ++argv;
        --argc;
@@ -38,9 +44,15 @@ int main(int argc, char **argv)
         } else if (!strncmp(*argv,"-t=",3) || !strncmp(*argv,"--tabs=",7) ) {
             int ofs;
             char prefix = NUL, prev_prefix=NUL ;
+#ifdef HANOI  
+            printf("About to set tab positions.\n") ;
+#endif 
             if (strstr(*argv,",")) {
                 int j=1, ENDVAL=FALSE;
                 char *str1,*token;
+#ifdef HANOI  
+                modus=strdup("List of tabs");
+#endif 
                 ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 for (str1 = &(*argv)[ofs]; ; j++, str1 = NULL) {
@@ -48,7 +60,13 @@ int main(int argc, char **argv)
                     token = strtok(str1, ",");
                     if (token == NULL)
                         break;
+#ifdef HANOI  
+                    printf("token == %s\n",token);
+#endif 
                     if ((tabval=xtatou(token,&prefix)) != 0 && (prev_prefix != PLUS && prev_prefix != DIV )) {
+#ifdef HANOI  
+                        printf("setting tabpos: %d  prefix == ",tabval); 
+#endif 
                         prev_prefix= prefix ;
                         add_tabs( tabval,prefix) ;
                     } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
@@ -70,13 +88,22 @@ int main(int argc, char **argv)
                 ofs = (!strncmp(*argv,"-t=",3)) ?  3 : 7 ;
 
                 tabval= xtatou(&(*argv)[ofs], &prefix) ;
+#ifdef HANOI  
+                printf("tabval == %d\n",tabval );
+#endif 
                 if (tabval == 0 || prefix != NUL) {
                     abort_bad_num_arg(PROGNAME, &(*argv)[ofs]) ;
                 } else if (argc <= 1 ) { /* no point in looking for more */
+#ifdef HANOI  
+                    modus=strdup("Even tab settings");
+#endif 
                     set_eventabs(tabval) ;
                    
                 } else  { /* check to see if we got a list. */
                     int tmpval;
+#ifdef HANOI  
+                    modus=strdup("List of tabs");
+#endif 
                     /* We LOOK AHEAD, at this point we know we have an extra
                      * argument left */
 
@@ -96,6 +123,9 @@ int main(int argc, char **argv)
                         for ( ; argc > 1 ; --argc,++argv  ) {
                             if ((tmpval=xtatou(*(argv+1),&prefix)) != 0 && ( prev_prefix != PLUS && prev_prefix != DIV)) {
                             /* '+; or '/' prefix from here */
+#ifdef HANOI  
+                                printf("List of tabs! val = %d prefix == ",tmpval);
+#endif 
                                 prev_prefix= prefix ;
                                 add_tabs( tmpval,prefix) ;
                             } else if ( prev_prefix == PLUS || prev_prefix == DIV ) {
@@ -106,11 +136,18 @@ int main(int argc, char **argv)
                             }
                         }
                     } else { /* we didn't have a list, only even tabs. */
+#ifdef HANOI  
+                        modus=strdup("Even tab settings");
+#endif 
                         set_eventabs(tabval) ;
                     }
                 }
             }
         } else if ((*(argv))[0] == '-' && (strpbrk(&(*(argv))[1],"1234567890") == &(*(argv))[1] )) {
+#ifdef HANOI  
+            printf("HERE IN M +N\n") ;
+            modus=strdup("-m +n construct");
+#endif 
             int m=atoi((*argv)+1);
             if (argc >1 ) {
                 --argc ;
@@ -135,6 +172,12 @@ int main(int argc, char **argv)
            break ;
        }
     }
+#ifdef HANOI  
+    if (argc > 1 ) {
+        printf("Next argument is: %s \n",*argv);
+        return 1 ;
+    } 
+#endif 
     if (!tabs_been_set() ) {
       set_eventabs( tabval ) ;
     }
@@ -142,8 +185,9 @@ int main(int argc, char **argv)
         if ( argc > 1 ) {
             --argc;
             *argv++ ;
-            if (!strcmp(*argv,"-") && (processed > 0 )) {
-                in=stdin;
+            if (!strcmp(*argv,"-") ) {
+                if (processed > 0 )
+                    in=stdin;
             } else if ( (in = fopen(*argv,"r") ) == NULL ) {
                 fprintf(stderr,"fileargs1: Can't open %s\n",*argv );
                 ++processed ;
